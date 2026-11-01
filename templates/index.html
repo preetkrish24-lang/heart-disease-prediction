@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Heart Disease Prediction - By Krish Verma</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: Arial, sans-serif;
+      background: #f0f4f8;
+      min-height: 100vh;
+    }
+
+    /* ── Header ── */
+    .header {
+      background: #e53935;
+      color: white;
+      text-align: center;
+      padding: 18px;
+    }
+    .header h1 { font-size: 22px; }
+    .header p  { font-size: 12px; color: #ffcdd2; margin-top: 4px; }
+
+    /* ── Accuracy badge ── */
+    .badge {
+      text-align: center;
+      padding: 8px;
+      background: #fff3e0;
+      font-size: 13px;
+      color: #e65100;
+      font-weight: bold;
+    }
+
+    /* ── Result Box ── */
+    .result-box {
+      max-width: 520px;
+      margin: 20px auto 0;
+      padding: 20px 24px;
+      border-radius: 10px;
+      text-align: center;
+      font-weight: bold;
+      font-size: 22px;
+    }
+    .result-box.red   { background: #ffebee; color: #c62828; border: 2px solid #e53935; }
+    .result-box.green { background: #e8f5e9; color: #2e7d32; border: 2px solid #43a047; }
+    .result-box .prob { font-size: 14px; margin-top: 6px; font-weight: normal; }
+    .result-box .adv  { font-size: 13px; margin-top: 8px; color: #555; font-weight: normal; }
+
+    /* ── Form Card ── */
+    .card {
+      background: white;
+      max-width: 520px;
+      margin: 20px auto 40px;
+      border-radius: 10px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      padding: 24px;
+    }
+    .card h2 {
+      font-size: 16px;
+      color: #333;
+      margin-bottom: 16px;
+      border-bottom: 2px solid #e53935;
+      padding-bottom: 8px;
+    }
+
+    /* ── Form rows ── */
+    .form-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+    }
+    .form-row label {
+      font-size: 13px;
+      color: #444;
+      flex: 1;
+    }
+    .form-row input {
+      width: 90px;
+      padding: 6px 10px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      font-size: 13px;
+      text-align: center;
+    }
+    .form-row input:focus {
+      outline: none;
+      border-color: #e53935;
+    }
+
+    /* ── Buttons ── */
+    .btn-row {
+      display: flex;
+      gap: 12px;
+      margin-top: 20px;
+    }
+    .btn-predict {
+      flex: 1;
+      background: #e53935;
+      color: white;
+      border: none;
+      padding: 12px;
+      border-radius: 8px;
+      font-size: 15px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    .btn-predict:hover { background: #c62828; }
+
+    .btn-clear {
+      flex: 1;
+      background: #90a4ae;
+      color: white;
+      border: none;
+      padding: 12px;
+      border-radius: 8px;
+      font-size: 15px;
+      cursor: pointer;
+    }
+    .btn-clear:hover { background: #78909c; }
+
+    /* ── Footer ── */
+    .footer {
+      text-align: center;
+      font-size: 11px;
+      color: #aaa;
+      padding: 16px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Header -->
+  <div class="header">
+    <h1>Heart Disease Prediction App</h1>
+    <p>By Krish Verma &nbsp;|&nbsp; Random Forest &nbsp;|&nbsp; UCI Heart Disease Dataset</p>
+  </div>
+
+  <!-- Accuracy Badge -->
+  <div class="badge">
+    Model Accuracy: {{ accuracy }}
+  </div>
+
+  <!-- Result Box (shows only after prediction) -->
+  {% if result %}
+  <div class="result-box {{ color }}">
+    {{ result }}
+    <div class="prob">Disease Probability: {{ probability }}%</div>
+    <div class="adv">{{ advice }}</div>
+  </div>
+  {% endif %}
+
+  <!-- Form Card -->
+  <div class="card">
+    <h2>Enter Patient Details</h2>
+    <form action="/predict" method="POST">
+
+      {% set defaults = {
+        'age': '52', 'sex': '1', 'cp': '0', 'trestbps': '125',
+        'chol': '212', 'fbs': '0', 'restecg': '0', 'thalach': '168',
+        'exang': '0', 'oldpeak': '1.0', 'slope': '2', 'ca': '0', 'thal': '3'
+      } %}
+
+      {% set labels = [
+        ('age',      'Age (years)'),
+        ('sex',      'Sex  (1=Male, 0=Female)'),
+        ('cp',       'Chest Pain Type  (0–3)'),
+        ('trestbps', 'Resting Blood Pressure'),
+        ('chol',     'Cholesterol (mg/dl)'),
+        ('fbs',      'Fasting Blood Sugar >120  (1=Yes)'),
+        ('restecg',  'Resting ECG  (0–2)'),
+        ('thalach',  'Max Heart Rate'),
+        ('exang',    'Exercise Angina  (1=Yes)'),
+        ('oldpeak',  'ST Depression'),
+        ('slope',    'ST Slope  (0–2)'),
+        ('ca',       'Major Vessels  (0–3)'),
+        ('thal',     'Thal  (1=Normal, 2=Fixed, 3=Rev)')
+      ] %}
+
+      {% for key, label in labels %}
+      <div class="form-row">
+        <label>{{ label }}</label>
+        <input type="number" name="{{ key }}" step="any"
+               value="{{ form_data[key] if form_data else defaults[key] }}" required />
+      </div>
+      {% endfor %}
+
+      <div class="btn-row">
+        <button type="submit" class="btn-predict">Predict</button>
+        <button type="button" class="btn-clear"
+                onclick="window.location='/'">Clear</button>
+      </div>
+
+    </form>
+  </div>
+
+  <div class="footer">
+    This app is for educational purposes only. Not a substitute for medical advice.
+  </div>
+
+</body>
+</html>
